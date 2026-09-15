@@ -1,0 +1,52 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAEXAMPLEQ3R9Z",
+        "arn": "arn:aws:iam::123456789012:user/devops-deployer-backup",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIATPSOM7FJN652WY8U"
+      },
+      "eventTime": "2026-09-15T01:30:12Z",
+      "eventSource": "sts.amazonaws.com",
+      "eventName": "GetCallerIdentity",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "198.51.100.44",
+      "userAgent": "aws-cli/2.15.15 Python/3.11.6 Linux/6.5.0-kali3-amd64",
+      "requestParameters": null
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "accessKeyId": "AKIATPSOM7FJN652WY8U"
+      },
+      "eventTime": "2026-09-15T01:32:05Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "ListBuckets",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "198.51.100.44",
+      "userAgent": "botocore/1.34.15",
+      "requestParameters": null
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "accessKeyId": "AKIAREGULARUSERKEY"
+      },
+      "eventTime": "2026-09-15T01:35:10Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetObject",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.88",
+      "userAgent": "aws-sdk-java/2.20.0",
+      "requestParameters": {
+        "bucketName": "corp-customer-database-backup-2026",
+        "key": "db_dump_latest.sql.gz"
+      }
+    }
+  ]
+}
