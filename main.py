@@ -8,6 +8,7 @@ from rich.table import Table
 from core.token_manager import HoneyTokenManager
 from generators.seeder import TrapSeeder
 from detectors.canary_detector import CanaryDetector
+from detectors.adversary_profiler import AdversaryProfiler
 
 console = Console()
 
@@ -22,7 +23,7 @@ def main():
     parser = argparse.ArgumentParser(description="AWS HoneyToken & Active Defense Trapper.")
     parser.add_argument("--list-tokens", action="store_true", help="List all currently armed honeytokens and traps")
     parser.add_argument("--seed", action="store_true", help="Seed default decoy credentials and S3 traps")
-    parser.add_argument("--scan-trail", help="Path to CloudTrail JSON log file to audit for canary triggers", default="data/sample_cloudtrail.json")
+    parser.add_argument("--scan-trail", help="Path to CloudTrail JSON log file", default="data/sample_cloudtrail.json")
     args = parser.parse_args()
 
     display_banner()
@@ -39,34 +40,55 @@ def main():
             console.print(f"[red][!] CloudTrail log file not found: {args.scan_trail}[/red]")
             sys.exit(1)
 
-        console.print(f"[*] Ingesting CloudTrail audit stream from: [cyan]{args.scan_trail}[/cyan]\n")
+        console.print(f"[*] Ingesting CloudTrail audit stream from: [cyan]{args.scan_trail}[/cyan]")
         alerts = CanaryDetector.scan_cloudtrail_log(args.scan_trail, tokens)
 
-        table = Table(title="[bold red]🚨 HoneyToken Trip-Wire Detections & Intrusion Alerts[/bold red]", border_style="red")
+        if not alerts:
+            console.print(Panel("[bold green]✔ SYSTEM CLEAN[/bold green]\nNo canary access keys or decoy S3 buckets were touched.", border_style="green"))
+            return
+
+        table = Table(title="[bold red]🚨 Tripped Canary Traps Overview[/bold red]", border_style="red")
         table.add_column("Alert ID", justify="center", style="dim")
         table.add_column("Trigger Mechanism", justify="center", style="magenta")
         table.add_column("Compromised Asset / Key", style="yellow")
         table.add_column("AWS Action", justify="center", style="cyan")
         table.add_column("Attacker IP", justify="center", style="white")
-        table.add_column("User Agent / Tooling", style="dim white")
         table.add_column("Severity", justify="center")
 
-        if not alerts:
-            table.add_row("-", "CLEAN", "No canary triggers detected.", "-", "-", "-", "[bold green]INFORMATIONAL[/bold green]")
-        else:
-            for a in alerts:
-                sev_color = "bold red" if a["severity"] == "CRITICAL" else "bold yellow"
-                table.add_row(
-                    a["alert_id"],
-                    a["trigger_type"],
-                    a["compromised_key"],
-                    a["event_name"],
-                    a["source_ip"],
-                    a["user_agent"][:30] + "..." if len(a["user_agent"]) > 30 else a["user_agent"],
-                    f"[{sev_color}]{a['severity']}[/{sev_color}]"
-                )
+        for a in alerts:
+            sev_color = "bold red" if a["severity"] == "CRITICAL" else "bold yellow"
+            table.add_row(
+                a["alert_id"],
+                a["trigger_type"],
+                a["compromised_key"],
+                a["event_name"],
+                a["source_ip"],
+                f"[{sev_color}]{a['severity']}[/{sev_color}]"
+            )
         console.print(table)
-        console.print(f"\n[bold green]✔ Day 2 Complete:[/bold green] Detected [bold red]{len(alerts)}[/bold red] canary trip-wire triggers.")
+        console.print()
+
+        p_table = Table(title="[bold cyan]🕵️ Adversary Profiling, Geolocation & MITRE ATT&CK Attribution[/bold cyan]", border_style="cyan")
+        p_table.add_column("Alert ID", justify="center", style="dim")
+        p_table.add_column("Detected Tooling / UA", style="yellow")
+        p_table.add_column("Attributed Origin / ASN", style="magenta")
+        p_table.add_column("MITRE Technique", style="white")
+        p_table.add_column("Tactic", justify="center", style="cyan")
+        p_table.add_column("Attribution Confidence", justify="center", style="green")
+
+        for a in alerts:
+            profile = AdversaryProfiler.profile_incident(a)
+            p_table.add_row(
+                profile["alert_id"],
+                profile["adversary_tooling"],
+                f"{profile['geo_country']}\n[dim]{profile['geo_asn']}[/dim]",
+                f"{profile['mitre_technique']} ([bold cyan]{profile['mitre_id']}[/bold cyan])",
+                profile["mitre_tactic"],
+                profile["confidence"]
+            )
+        console.print(p_table)
+
+        console.print(f"\n[bold green]✔ Day 3 Complete:[/bold green] Profiled [bold red]{len(alerts)}[/bold red] adversary interactions.")
         return
 
     table = Table(title="[bold cyan]🍯 Active AWS HoneyToken & Canary Decoy Inventory[/bold cyan]", border_style="cyan")
